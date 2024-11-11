@@ -1,0 +1,140 @@
+2. CASO SISTEMA DE TURNOS Y CONSULTAS MÉDICAS
+
+CREATE TABLE [dbo].[Pacientes](
+PacienteID INTEGER IDENTITY(1,1) NOT NULL,
+Nombre VARCHAR(50) NOT NULL,
+FechaNacimiento DATE,
+Sexo VARCHAR(50),
+Telefono VARCHAR(50) NOT NULL,
+CONSTRAINT PRIMARY KEY (PacienteID)
+);
+
+CREATE TABLE [dbo].[Doctores](
+DoctorID INTEGER IDENTITY(1,1) NOT NULL,
+Doctor VARCHAR(50) NOT NULL,
+Especialidad VARCHAR(50) NOT NULL,
+Telefono VARCHAR(50) NOT NULL,
+CONSTRAINT PRIMARY KEY (DoctorID)
+);
+CREATE TABLE [dbo].[Turnos](
+TurnosID INTEGER IDENTITY(1,1) NOT NULL,
+PacienteID INTEGER,
+DoctorID INTEGER,
+FechaTurno DATE,
+MotivoTurno VARCHAR(50) NOT NULL,
+CONSTRAINT PRIMARY KEY (TurnosID),
+CONSTRAINT FOREINT KEY (PacienteID) REFERENCES Paciente(PacienteID),
+CONSTRAINT FOREINT KEY (DoctorID D) REFERENCES Doctores(DoctorID)
+);
+
+CREATE TABLE [dbo].[Consultas](
+ConsultaID INTEGER IDENTITY(1,1) NOT NULL,
+TurnosID INTEGER NOT NULL,
+Diagnostico VARCHAR(200),
+Tratamiento VARCHAR(200),
+CONSTRAINT PRIMARY KEY (ConsultaID),
+CONSTRAINT FOREINT KEY (TurnosID) REFERENCES Turnos(TurnosID) 
+
+);
+
+
+
+-e
+INSERT INTO [dbo].[Pacientes] (Nombre, FechaNacimiento, Sexo, Telefono) VALUES 
+('Ana Torres', '1990-04-25', 'Femenino', '555-1234'),
+('Juan Pérez', '1982-11-30', 'Masculino', '555-5678'),
+('Lucía Gómez', '1995-06-15', 'Femenino', '555-8765');
+
+INSERT INTO [dbo].[Doctores] (Doctor, Especialidad, Telefono) VALUES 
+('Dr. Gómez', 'Dermatología', '555-4321'),
+('Dra. García', 'Cardiología', '555-6789'),
+('Dr. Martínez', 'Dermatología', '555-9876');
+
+INSERT INTO [dbo].[Turnos] (PacienteID, DoctorID, FechaTurno, MotivoTurno) VALUES 
+(1, 1, '2024-10-15', 'Consulta general'),
+(2, 2, '2024-10-20', 'Chequeo cardíaco'),
+(3, 3, '2024-10-25', 'Control dermatológico');
+
+INSERT INTO [dbo].[Consultas] (TurnoID, Diagnostico, Tratamiento) VALUES 
+(1, 'Dermatitis leve', 'Crema tópica'),
+(2, 'Arritmia detectada', 'Medicamento antiarrítmico'),
+(3, 'Alergia cutánea', 'Antihistamínico');
+
+
+-f
+SELECT Doctor, Especialidad 
+FROM [dbo].[Doctores] 
+WHERE Especialidad = 'Dermatología';
+
+-g
+SELECT T.TurnoID, P.Nombre AS NombrePaciente, D.Doctor AS NombreDoctor, T.FechaTurno 
+FROM [dbo].[Turnos] T
+JOIN [dbo].[Pacientes] P ON T.PacienteID = P.PacienteID
+JOIN [dbo].[Doctores] D ON T.DoctorID = D.DoctorID;
+
+-h
+SELECT P.Nombre AS NombrePaciente, T.MotivoTurno, C.Diagnostico 
+FROM [dbo].[Consultas] C
+JOIN [dbo].[Turnos] T ON C.TurnoID = T.TurnoID
+JOIN [dbo].[Pacientes] P ON T.PacienteID = P.PacienteID;
+
+-i
+CREATE VIEW Vista_TratamientosPorEspecialidad AS
+SELECT D.Doctor, D.Especialidad, P.Nombre AS NombrePaciente, C.Tratamiento
+FROM [dbo].[Consultas] C
+JOIN [dbo].[Turnos] T ON C.TurnoID = T.TurnoID
+JOIN [dbo].[Doctores] D ON T.DoctorID = D.DoctorID
+JOIN [dbo].[Pacientes] P ON T.PacienteID = P.PacienteID;
+
+SELECT * FROM Vista_TratamientosPorEspecialidad;
+
+-j
+SELECT Nombre
+FROM [dbo].[Pacientes] P
+WHERE NOT EXISTS (
+    SELECT 1 FROM [dbo].[Turnos] T WHERE T.PacienteID = P.PacienteID
+);
+
+
+-k
+CREATE PROCEDURE AgendarCita
+    @PacienteID INT,
+    @DoctorID INT,
+    @FechaTurno DATE,
+    @MotivoTurno VARCHAR(50)
+AS
+BEGIN
+    INSERT INTO [dbo].[Turnos] (PacienteID, DoctorID, FechaTurno, MotivoTurno)
+    VALUES (@PacienteID, @DoctorID, @FechaTurno, @MotivoTurno);
+END;
+
+-l
+EXEC AgendarCita @PacienteID = 1, @DoctorID = 2, @FechaTurno = '2024-10-20', @MotivoTurno = 'Consulta general';
+
+-m
+SELECT D.Doctor, COUNT(T.TurnoID) AS CitasPendientes
+FROM [dbo].[Doctores] D
+JOIN [dbo].[Turnos] T ON D.DoctorID = T.DoctorID
+WHERE NOT EXISTS (
+    SELECT 1 FROM [dbo].[Consultas] C WHERE C.TurnoID = T.TurnoID
+)
+GROUP BY D.Doctor;
+
+
+-n
+CREATE PROCEDURE ActualizarTratamiento
+    @TurnoID INT,
+    @NuevoTratamiento VARCHAR(200)
+AS
+BEGIN
+    UPDATE [dbo].[Consultas]
+    SET Tratamiento = @NuevoTratamiento
+    WHERE TurnoID = @TurnoID;
+END;
+
+
+-o
+DELETE FROM [dbo].[Turnos]
+WHERE NOT EXISTS (
+    SELECT 1 FROM [dbo].[Consultas] C WHERE C.TurnoID = Turnos.TurnoID
+);
