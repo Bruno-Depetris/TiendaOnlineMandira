@@ -9,7 +9,6 @@ body{
 ::-webkit-scrollbar{
     display: none;
 }
-
 .imagenfondo{
     position: fixed;
     left: 50%;
@@ -156,10 +155,10 @@ article h4{
 }
 
 article button{
-
-    border-radius: 10%;
-    width: 5vw;
-    height: 5vh;
-    background: rgb(184, 184, 184);
-
+    border-radius: 8px;
+    width: 40%;
+    height: 6vh;
+    border: none;
+    border: 1px solid black;
+    background: rgb(247, 247, 247);
 }
